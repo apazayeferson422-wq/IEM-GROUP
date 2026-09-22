@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Inventario 206 - V18</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f3f6f8;color:#17212b}
+header{background:#0b5d3b;color:#fff;padding:11px 13px;position:sticky;top:0;z-index:30}
+h1{font-size:18px;margin:0}.sub{font-size:11px;opacity:.9;margin-top:2px}
+main{max-width:760px;margin:auto;padding:8px}.card{background:#fff;border-radius:11px;padding:10px;margin-bottom:8px;box-shadow:0 2px 8px #0001}
+label{display:block;font-size:11px;font-weight:bold;margin-bottom:4px}input,button{font:inherit}
+input{width:100%;padding:10px;border:1px solid #ccd4dc;border-radius:8px;background:#fff}
+button{border:0;border-radius:8px;padding:10px 12px;font-weight:bold;cursor:pointer}
+.primary{background:#0b5d3b;color:#fff}.secondary{background:#e8eef2}.danger{background:#b42318;color:#fff}.warning{background:#f4b400;color:#111}
+.searchrow{display:grid;grid-template-columns:1fr auto;gap:7px}.searchWrap{position:relative}
+#suggestions{position:absolute;left:0;right:0;top:100%;background:#fff;border:1px solid #ccd4dc;border-radius:8px;z-index:50;max-height:230px;overflow:auto;box-shadow:0 5px 18px #0002}
+.sug{padding:9px;border-bottom:1px solid #eee;cursor:pointer;font-size:13px}.sug:hover{background:#eef7f2}
+.product{background:#edf7f2;border-left:5px solid #0b5d3b;padding:9px;border-radius:8px}
+.productName{font-size:17px;font-weight:bold}.muted{font-size:10px;color:#68737e}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.big{font-size:18px;font-weight:bold}.grid input{min-height:40px}
+.actions{display:flex;gap:6px;margin-top:8px}.actions button{flex:1}
+.fvrow{display:grid;grid-template-columns:1fr 1fr .9fr auto;gap:5px;align-items:end;margin-top:6px}
+.alert{padding:7px;border-radius:7px;font-size:11px;margin-top:6px}.expired{background:#fde2e1;color:#9d1c18}.soon{background:#fff0d1;color:#8a5700}.ok{background:#dff5e8;color:#146c3a}
+.progress{height:9px;background:#e6eaee;border-radius:20px;overflow:hidden;margin-top:6px}.bar{height:100%;background:#0b5d3b;width:0}
+.progressText{font-size:11px;margin-top:4px;color:#53606c}
+.listTitle{display:flex;justify-content:space-between;align-items:center}.record{border-bottom:1px solid #e5e7eb;padding:9px 2px}.record:last-child{border-bottom:0}
+.recordTop{display:flex;justify-content:space-between;gap:7px;font-size:13px;font-weight:bold}.recordMeta{font-size:10px;color:#68737e;margin-top:3px}
+.recordActions{display:flex;gap:5px;margin-top:6px}.recordActions button{padding:6px 9px;font-size:11px}
+.badge{padding:3px 6px;border-radius:10px;font-size:9px;font-weight:bold}.pos{background:#dff5e8;color:#146c3a}.neg{background:#fde2e1;color:#9d1c18}.zero{background:#e9eef3;color:#425466}
+.empty{text-align:center;color:#6b7280;padding:16px;font-size:11px}
+#scanner{display:none;position:fixed;inset:0;background:#000b;z-index:100;padding:18px}
+.scanbox{max-width:600px;margin:20px auto;background:#fff;border-radius:12px;padding:10px}
+video{width:100%;border-radius:8px;background:#111;max-height:55vh}.scanhint{font-size:11px;margin:7px 0;color:#566}
+@media(max-width:520px){.fvrow{grid-template-columns:1fr 1fr}.fvrow button{grid-column:2}.productName{font-size:16px}}
+
+#loginBox{max-width:420px;margin:30px auto;background:#fff;border-radius:12px;padding:16px;box-shadow:0 2px 10px #0002}
+#loginBox h2{margin:0 0 8px;font-size:20px}#loginBox .small{font-size:11px;color:#68737e;margin-bottom:10px}
+#cloudBar{font-size:10px;padding:5px 9px;border-radius:8px;background:#e8eef2;color:#425466;display:inline-block;margin-top:5px}
+
+.fvSummary{margin-top:7px;border-top:1px solid #e5e7eb;padding-top:6px}
+.fvTitle{font-weight:700;font-size:12px;margin-bottom:4px}
+.fvItem{display:flex;flex-wrap:wrap;gap:8px 14px;background:#f7faf9;border:1px solid #e2ebe7;border-radius:7px;padding:5px 7px;margin:3px 0;font-size:11px}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<div id="loginBox">
+  <h2>🔐 Inventario IEM</h2>
+  <div class="small">Ingresa para sincronizar el inventario en la nube.</div>
+  <label>Correo</label>
+  <input id="loginEmail" type="email" autocomplete="username" placeholder="tu correo">
+  <div style="height:7px"></div>
+  <label>Contraseña</label>
+  <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Contraseña">
+  <div class="actions">
+    <button class="primary" onclick="loginCloud()">Iniciar sesión</button>
+    <button class="secondary" onclick="signupCloud()">Crear usuario</button>
+  </div>
+  <div id="loginMsg" class="alert" style="display:none"></div>
+  <div style="text-align:center;margin-top:8px">
+    <button type="button" class="secondary" style="border:0;background:none;padding:4px;font-size:11px" onclick="showRecovery()">¿Olvidaste tu contraseña?</button>
+  </div>
+
+
+</div>
+<div id="recoveryBox" style="display:none;max-width:420px;margin:30px auto;background:#fff;border-radius:12px;padding:16px;box-shadow:0 2px 10px #0002">
+  <h2 style="margin:0 0 8px;font-size:20px">🔑 Recuperar contraseña</h2>
+  <div class="small">Te enviaremos un enlace al correo. Debes abrirlo desde la aplicación publicada.</div>
+  <label>Correo</label>
+  <input id="recoveryEmail" type="email" placeholder="tu correo">
+  <div class="actions">
+    <button class="primary" onclick="sendRecovery()">Enviar enlace</button>
+    <button class="secondary" onclick="backToLogin()">Volver</button>
+  </div>
+  <div id="recoveryMsg" class="alert" style="display:none"></div>
+</div>
+<div id="newPasswordBox" style="display:none;max-width:420px;margin:30px auto;background:#fff;border-radius:12px;padding:16px;box-shadow:0 2px 10px #0002">
+  <h2 style="margin:0 0 8px;font-size:20px">🔐 Nueva contraseña</h2>
+  <label>Nueva contraseña</label>
+  <input id="newPassword" type="password" minlength="6" placeholder="Mínimo 6 caracteres">
+  <label>Repite la contraseña</label>
+  <input id="newPassword2" type="password" minlength="6" placeholder="Repite la contraseña">
+  <div class="actions">
+    <button class="primary" onclick="updatePassword()">Guardar contraseña</button>
+  </div>
+  <div id="passwordMsg" class="alert" style="display:none"></div>
+</div>
+<div id="appShell" style="display:none">
+<header><h1>📦 INVENTARIO 206</h1><div class="sub">Conteo simple · acumulado · FV · avance</div><div id="cloudBar">☁️ Conectando...</div><button class="secondary" style="float:right;margin-top:-28px;padding:6px 8px;font-size:10px" onclick="logoutCloud()">Salir</button></header>
+<main>
+
+<div class="card">
+  <label>🔎 Buscar producto</label>
+  <div class="searchrow">
+    <div class="searchWrap">
+      <input id="search" autocomplete="off" placeholder="Descripción o código..." oninput="searchProducts()">
+      <div id="suggestions"></div>
+    </div>
+    <button class="secondary" onclick="startScanner()">📷</button>
+  </div>
+  <div style="margin-top:6px">
+    <label style="margin:0">Código de barras / código</label>
+    <input id="barcode" inputmode="numeric" placeholder="Escanea o escribe el código y presiona Enter" onkeydown="if(event.key==='Enter')findBarcode()">
+  </div>
+</div>
+
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center"><b>📈 Avance</b><b id="advancePct">0%</b></div>
+  <div class="progress"><div id="progressBar" class="bar"></div></div>
+  <div id="advanceText" class="progressText">0 de 206 productos registrados</div>
+</div>
+
+<div id="editor" class="card" style="display:none">
+  <div class="product"><div class="productName" id="pname"></div><div class="muted" id="pmeta"></div></div>
+  <div id="editMode" class="alert warning" style="display:none">✏️ Modo edición: al guardar se reemplaza el registro de este producto.</div>
+
+  <div class="grid" style="margin-top:8px">
+    <div><label>📦 Cajas</label><input id="boxes" type="number" min="0" step="1" value="0" oninput="calc()"></div>
+    <div><label>🔢 Sueltas</label><input id="loose" type="number" min="0" step="1" value="0" oninput="calc()"></div>
+    <div><label>Total</label><input id="total" class="big" readonly></div>
+    <div><label>📅 FV</label><input id="fvSingle" type="date" onchange="showExpiryAlerts()"></div>
+  </div>
+  <div id="alertbox"></div>
+  <div class="actions">
+    <button class="primary" onclick="saveRecord(true)">💾 Guardar y siguiente</button>
+    <button class="secondary" onclick="focusSearch()">🔎 Abrir búsqueda</button>
+  </div>
+</div>
+
+<div class="card">
+  <div class="listTitle"><b>📋 Productos registrados</b><span class="muted" id="count">0</span></div>
+  <div id="recordsList"></div>
+</div>
+
+<div class="card">
+  <div class="actions" style="margin-top:0">
+    <button class="secondary" onclick="backup()">💾 Respaldo</button>
+    <button class="secondary" onclick="restore()">↩️ Restaurar</button>
+    <button class="secondary" onclick="exportCSV()">📤 Excel/CSV</button>
+  </div>
+</div>
+</main>
+
+<div id="scanner">
+  <div class="scanbox">
+    <b>📷 Escanear código</b>
+    <div class="scanhint">Apunta la cámara al código de barras. Si tu navegador no permite la cámara desde el archivo, usa el campo de código manual.</div>
+    <video id="video" playsinline></video>
+    <div class="actions"><button class="danger" onclick="stopScanner()">Cerrar</button><button class="secondary" onclick="focusBarcode()">Usar código</button></div>
+  </div>
+</div>
+
+<script>
+const MAESTRO = [{"codigo": "1", "producto": "RECOJO DE DEVOLUCION", "unidad_base": "UND", "factor_ref": 1.0, "unidad_ref": "UND", "stock": 415.0, "categoria": "OTROS: DEVOLUCION", "almacen": "Central"}, {"codigo": "122", "producto": "QUESO FRESCO LAIVE PAQUETE", "unidad_base": "UND", "factor_ref": 1.0, "unidad_ref": "UND", "stock": 13.0, "categoria": "QUESOS: FRESCO", "almacen": "Central"}, {"codigo": "224", "producto": "Q. DANBO LAIVE TAJADA TRAD. PQT 180G x15", "unidad_base": "PQT", "factor_ref": 15.0, "unidad_ref": "CJ*15", "stock": 103.0, "categoria": "QUESOS: DANBO", "almacen": "Central"}, {"codigo": "225", "producto": "Q. LAIVE EDAM SANDWICH (S/I) PQT 500G", "unidad_base": "PQT", "factor_ref": 12.0, "unidad_ref": "CJ*12", "stock": 122.0, "categoria": "QUESOS: EDAM", "almacen": "Central"}, {"codigo": "229", "producto": "Q. EDAM LAIVE TAJADAS FINAS PQT 90G", "unidad_base": "PQT", "factor_ref": 24.0, "unidad_ref": "CJ*24", "stock": 315.0, "categoria": "QUESOS: EDAM", "almacen": "Central"}, {"codigo": "231", "producto": "QUESO EDAM LAIVE X KG", "unidad_base": "MOL", "factor_ref": 1.0, "unidad_ref": "MOL", "stock": 69.0, "categoria": "QUESOS: EDAM", "almacen": "Central"}, {"codigo": "237", "producto": "QUESO EDAM SIN LACTOSA 180G", "unidad_base": "PQT", "factor_ref": 24.0, "unidad_ref": "CJ*24", "stock": 184.0, "categoria": "QUESOS: EDAM", "almacen": "Central"}, {"codigo": "240", "producto": "PACK LAIVE QUESO EDAM+JAMON PIZZERO 300G", "unidad_base": "PQT", "factor_ref": 24.0, "unidad_ref": "CJ*24", "stock": 192.0, "categoria": "CARNICOS: JAMÓN", "almacen": "Central"}, {"codigo": "249", "producto": "Q. EDAM LAIVE TAJADA TRAD. PQT 180G", "unidad_base": "PQT", "factor_ref": 15.0, "unidad_ref": "CJ*15", "stock": 95.0, "categoria": "QUESOS: EDAM", "almacen": "Central"}, {"codigo": "260", "producto": "QUESO MOZARELLA LAIVE PORCION", "unidad_base": "POR", "factor_ref": 10.0, "unidad_ref": "BOL*10", "stock": 427.0, "categoria": "QUESOS: MOZARELLA", "almacen": "Central"}, {"codigo": "264", "producto": "QUESO MOZZARELLA LAIVE SBELT", "unidad_base": "POR", "factor_ref": 1.0, "unidad_ref": "POR", "stock": 72.0, "categoria": "QUESOS: MOZARELLA", "almacen": "Central"}, {"codigo": "269", "producto": "QUESO MOZZARELLA LAIVE TAJADAS 180G", "unidad_base": "PQT", "factor_ref": 15.0, "unidad_ref": "CJ*15", "stock": 126.0, "categoria": "QUESOS: MOZARELLA", "almacen": "Central"}, {"codigo": "272", "producto": "QUESO PARMESANO LAIVE RALLADO", "unidad_base": "SOB", "factor_ref": 50.0, "unidad_ref": "CJ*50", "stock": 73.0, "categoria": "QUESOS: PARMESANO", "almacen": "Central"}, {"codigo": "273", "producto": "QUESO PARMESANO LAIVE PORCION", "unidad_base": "MOL", "factor_ref": 1.0, "unidad_ref": "MOL", "stock": 49.0, "categoria": "QUESOS: PARMESANO", "almacen": "Central"}, {"codigo": "274", "producto": "QUESO PARMESANO RALLADO LAIVE FRASCO 226G", "unidad_base": "UND", "factor_ref": 12.0, "unidad_ref": "CJ*12", "stock": 78.0, "categoria": "QUESOS: PARMESANO", "almacen": "Central"}, {"codigo": "277", "producto": "Q. ANDINO LAIVE TAJADA TRAD. PQT 180G", "unidad_base": "PQT", "factor_ref": 15.0, "unidad_ref": "CJ*15", "stock": 102.0, "categoria": "QUESOS: ANDINO", "almacen": "Central"}, {"codigo": "278", "producto": "QUESO MOZZARELLA LAIVE PIZZERO MOLDE", "unidad_base": "MOL", "factor_ref": 1.0, "unidad_ref": "MOL", "stock": 88.0, "categoria": "QUESOS: MOZARELLA", "almacen": "Central"}, {"codigo": "341", "producto": "CREMA DE QUESO LAIVE SABOR NATURAL 80G SACHET", "unidad_base": "SHT", "factor_ref": 25.0, "unidad_ref": "BOL*25", "stock": 4351.0, "categoria": "QUESOS: CREMA", "almacen": "Central"}, {"codigo": "343", "producto": "CREMA DE Q. LAIVE SAB. FINAS HIERB. 80G", "unidad_base": "SHT", "factor_ref": 25.0, "unidad_ref": "BOL*25", "stock": 112.0, "categoria": "QUESOS: CREAM CHEESE", "almacen": "Central"}, {"codigo": "350", "producto": "CREMA DE QUESO LA PREFERIDA JAMON 80 GRS", "unidad_base": "SHT", "factor_ref": 25.0, "unidad_ref": "BOL*25", "stock": 1568.0, "categoria": "QUESOS: CREMA", "almacen": "Central"}, {"codigo": "351", "producto": "CREMA DE QUESO LA PREFERIDA NATURAL 80 GRS", "unidad_base": "SHT", "factor_ref": 25.0, "unidad_ref": "BOL*25", "stock": 6084.0, "categoria": "QUESOS: CREMA", "almacen": "Central"}, {"codigo": "440", "producto": "QUESO CHEDDAR LAIVE PAQUETE 12 TAJADAS", "unidad_base": "PQT", "factor_ref": 12.0, "unidad_ref": "CJ*12", "stock": 255.0, "categoria": "QUESOS: CHEDDAR", "almacen": "Central"}, {"codigo": "443", "producto": "QUESO CHEDDAR LAIVE PAQUETE 8 TAJADAS", "unidad_base": "PQT", "factor_ref": 24.0, "unidad_ref": "CJ*24", "stock": 376.0, "categoria": "QUESOS: CHEDDAR", "almacen": "Central"}, {"codigo": "460", "producto": "CREAM CHEESE LAIVE BARRA", "unidad_base": "PQT", "factor_ref": 36.0, "unidad_ref": "BOL*36", "stock": 1360.0, "categoria": "QUESOS: CREMA", "almacen": "Central"}, {"codigo": "520", "producto": "MANTEQUILLA LAIVE CON SAL CAJA", "unidad_base": "CAJ", "factor_ref": 1.0, "unidad_ref": "CAJ", "stock": 80.0, "categoria": "MANTEQUILLAS: CON SAL", "almacen": "Central"}, {"codigo": "521", "producto": "MANTEQUILLA LAIVE SIN SAL CAJA", "unidad_base": "CAJ", "factor_ref": 1.0, "unidad_ref": "CAJ", "stock": 10.0, "categoria": "MANTEQUILLAS: SIN SAL", "almacen": "Central"}, {"codigo": "541", "producto": "MANTEQUILLA CON SAL BARRA 90G", "unidad_base": "BAR", "factor_ref": 12.0, "unidad_ref": "CJ*12", "stock": 153.0, "categoria": "MANTEQUILLAS: CON SAL", "almacen": "Central"}, {"codigo": "551", "producto": "MANTEQUILLA CON SAL LAIVE BARRA 180 GR", "unidad_base": "BAR", "factor_ref": 24.0, "unidad_ref": "CJ*24", "stock": 117.0, "categoria": "MANTEQUILLAS: CON SAL", "almacen": "Central"}, {"codigo": "552", "producto": "MANTEQUILLA SIN SAL LAIVE BARRA 180GR", "unidad_base": "BAR", "factor_ref": 24.0, "unidad_ref": "CJ*24", "stock": 178.0, "categoria": "MANTEQUILLAS: SIN SAL", "almacen": "Central"}, {"codigo": "571", "producto": "MANTEQUILLA CON SAL LAIVE BLISTER 8G", "unidad_base": "UND", "factor_ref": 108.0, "unidad_ref": "CJ*108", "stock": 2587.0, "categoria": "MANTEQUILLAS: CON SAL", "almacen": "Central"}, {"codigo": "590", "producto": "MANTEQUILLA LIGHT POTE 180G", "unidad_base": "PTO", "factor_ref": 24.0, "unidad_ref": "CJ*24", "stock": 128.0, "categoria": "MANTEQUILLAS: LIGHT", "almacen": "Central"}, {"codigo": "653", "producto": "YOG. LAIVE MORA GALONERA 1.7 KG", "unidad_base": "UND", "factor_ref": 4.0, "unidad_ref": "PAQ*4", "stock": 56.0, "categoria": "YOGURTS: ENTERO (A)", "almacen": "Central"}, {"codigo": "655", "producto": "YOG. LAIVE DURAZNO GALONERA 1.7KG", "unidad_base": "UND", "factor_ref": 4.0, "unidad_ref": "PAQ*4", "stock": 48.0, "categoria": "YOGURTS: ENTERO (A)", "almacen": "Central"}, {"codigo": "657", "producto": "YOG. LAIVE FRESA GALONERA 1.7KG", "unidad_base": "UND", "factor_ref": 4.0, "unidad_ref": "PAQ*4", "stock": 92.0, "categoria": "YOGURTS: ENTERO (A)", "almacen": "Central"}, {"codigo": "659", "producto": "YOG. LAIVE LUCUMA GALONERA 1.7KG", "unidad_base": "UND", "factor_ref": 4.0, "unidad_ref": "PAQ*4", "stock": 47.0, "categoria": "YOGURTS: ENTERO (A)", "almacen": "Central"}, {"codigo": "660", "producto": "YOG. LAIVE VAINILLA GALONERA 1.7KG", "unidad_base": "UND", "factor_ref": 4.0, "unidad_ref": "PAQ*4", "stock": 42.0, "categoria": "YOGURTS: ENTERO (A)", "almacen": "Central"}, {"codigo": "661", "producto": "YOG. SBELT FRESA GALONERA 1.7KG", "unidad_base": "UND", "factor_ref": 4.0, "unidad_ref": "PAQ*4", "stock": 20.0, "categoria": "YOGURTS: LIGHT", "almacen": "Central"}, {"codigo": "669", "producto": "MEZCLA LAC LAIVE NUTRILAC CAJA480G SIXPACK", "unidad_base": "UND", "factor_ref": 24.0, "unidad_ref": "CJ*24", "stock": 1805.0, "categoria": "EVAPORADAS: ENTERO (A)", "almacen": "Central"}, {"codigo": "696", "producto": "YOGURT LAIVE FRESA PERSONAL", "unidad_base": "BOT", "factor_ref": 12.0, "unidad_ref": "PAQ*12", "stock": 469.0, "categoria": "YOGURTS: ENTERO (A)", "almacen": "Central"}, {"codigo": "697", "producto": "YOGURT LAIVE VAINILLA PERSONAL", "unidad_base": "BOT", "factor_ref": 12.0, "unidad_ref": "CJ*12", "stock": 652.0, "categoria": "YOGURTS: ENTERO (A)", "almacen": "Central"}, {"codigo": "698", "producto": "YOGURT LAIVE DURAZNO PERSONAL", "unidad_base": "BOT", "factor_ref": 12.0, "unidad_ref": "PAQ*12", "stock": 391.0, "categoria": "YOGURTS: ENTERO (A)", "almacen": "Central"}, {"codigo": "699", "producto": "YOGURT GRIEGO LAIVE FRUTOS ROJOS VASO115G", "unidad_base": "VAS", "factor_ref": 24.0, "unidad_ref": "CJ*24", "stock": 722.0, "categoria": "YOGURTS: GRIEGO", "almacen": "Central"}, {"codigo": "700", "producto": "BIO DEFENSA LAIVE FRESA FOUR PACK", "unidad_base": "PQT", "factor_ref": 48.0, "unidad_ref": "CJ*48", "stock": 1602.0, "categoria": "YOGURTS: FUNCIONALES", "almacen": "Central"}, {"codigo": "709", "producto": "BIO DEFENSA LAIVE VAINILLA FOUR PACK", "unidad_base": "PQT", "factor_ref": 48.0, "unidad_ref": "CJ*48", "stock": 1619.0, "categoria": "YOGURTS: FUNCIONALES", "almacen": "Central"}, {"codigo": "716", "producto": "YOGURT SBELT DURAZNO BOT946G", "unidad_base": "BOT", "factor_ref": 6.0, "unidad_ref": "PAQ*6", "stock": 36.0, "categoria": "YOGURTS: LIGHT", "almacen": "Central"}, {"codigo": "717", "producto": "YOGURT SBELT MORA BOT946G", "unidad_base": "BOT", "factor_ref": 6.0, "unidad_ref": "PAQ*6", "stock": 50.0, "categoria": "YOGURTS: LIGHT", "almacen": "Central"}, {"codigo": "718", "producto": "YOGURT SBELT FRESA BOT946G", "unidad_base": "BOT", "factor_ref": 6.0, "unidad_ref": "PAQ*6", "stock": 130.0, "categoria": "YOGURTS: LIGHT", "almacen": "Central"}, {"codigo": "725", "producto": "YOGURT SBELT NATURAL BOT946G", "unidad_base": "BOT", "factor_ref": 6.0, "unidad_ref": "PAQ*6", "stock": 137.0, "categoria": "YOGURTS: LIGHT", "almacen": "Central"}, {"codigo": "726", "producto": "YOGURT SBELT LUCUMA BOT946G", "unidad_base": "BOT", "factor_ref": 6.0, "unidad_ref": "PAQ*6", "stock": 59.0, "categoria": "YOGURTS: LIGHT", "almacen": "Central"}, {"codigo": "727", "producto": "YOGURT SBELT VAINILLA BOT946G", "unidad_base": "BOT", "factor_ref": 6.0, "unidad_ref": "PAQ*6", "stock": 64.0, "categoria": "YOGURTS: LIGHT", "almacen": "Central"}, {"codigo": "730", "producto": "YOGURT SIN LAC. LAIVE FRESA BOT946G", "unidad_base": "BOT", "factor_ref": 6.0, "unidad_ref": "PAQ*6", "stock": 79.0, "categoria": "YOGURTS: SIN LACTOSA", "almacen": "Central"}, {"codigo": "736", "producto": "YOGURT SIN LAC. LAIVE VAINILLA BOT946G", "unidad_base": "BOT", "factor_ref": 6.0, "unidad_ref": "PAQ*6", "stock": 52.0, "categoria": "YOGURTS: SIN LACTOSA", "almacen": "Central"}, {"codigo": "737", "producto": "YOGURT SIN LAC. LAIVE DURAZNO BOT946G", "unidad_base": "BOT", "factor_ref": 6.0, "unidad_ref": "PAQ*6", "stock": 82.0, "categoria": "YOGURTS: SIN LACTOSA", "almacen": "Central"}, {"codigo": "742", "producto": "YOG.LAIVE SABOR VAINILLA BOT 180G PACK X24", "unidad_base": "BOT", "factor_ref": 24.0, "unidad_ref": "PAQ*24", "stock": 365.0, "categoria": "YOGURTS: ENTERO (A)", "almacen": "Central"}, {"codigo": "752", "producto": "YOG. GRIEGO NATURAL VASO 115G", "unidad_base": "VAS", "factor_ref": 24.0, "unidad_ref": "PAQ*24", "stock": 691.0, "categoria": "YOGURTS: GRIEGO", "almacen": "Central"}, {"codigo": "753", "producto": "YOG. GRIEGO PIE DE LIMON VASO 115G", "unidad_base": "VAS", "factor_ref": 24.0, "unidad_ref": "PAQ*24", "stock": 201.0, "categoria": "YOGURTS: GRIEGO", "almacen": "Central"}, {"codigo": "754", "producto": "YOG.LAIVE SABOR FRESA BOT 180G PACK X24", "unidad_base": "BOT", "factor_ref": 24.0, "unidad_ref": "PAQ*24", "stock": 922.0, "categoria": "YOGURTS: ENTERO (A)", "almacen": "Central"}, {"codigo": "760", "producto": "ALF YOPI SHAKE FRESA BOT 180G PACK X24", "unidad_base": "BOT", "factor_ref": 24.0, "unidad_ref": "PAQ*24", "stock": 209.0, "categoria": "YOGURTS: INFANTIL / JUVENIL", "almacen": "Central"}, {"codigo": "761", "producto": "YOGURT LAIVE GRIEGO ORIGINAL POTE 800 GR", "unidad_base": "PTO", "factor_ref": 8.0, "unidad_ref": "CJ*8", "stock": 58.0, "categoria": "YOGURTS: GRIEGO", "almacen": "Central"}, {"codigo": "762", "producto": "YOG. LAIVE GRIEGO FRUTOS ROJOS 800 GR", "unidad_base": "PTO", "factor_ref": 8.0, "unidad_ref": "CJ*8", "stock": 185.0, "categoria": "YOGURTS: GRIEGO", "almacen": "Central"}, {"codigo": "764", "producto": "YOGURT LAIVE GRIEGO ORIGINAL POTE 500 GR", "unidad_base": "PTO", "factor_ref": 8.0, "unidad_ref": "CJ*8", "stock": 102.0, "categoria": "YOGURTS: GRIEGO", "almacen": "Central"}, {"codigo": "766", "producto": "YOG. LAIVE GRIEGO ARANDANOS 115 G", "unidad_base": "VAS", "factor_ref": 24.0, "unidad_ref": "PAQ*24", "stock": 273.0, "categoria": "YOGURTS: GRIEGO", "almacen": "Central"}, {"codigo": "768", "producto": "YOGURT LAIVE GRIEGO ARANDANOS POTE 800 G", "unidad_base": "PTO", "factor_ref": 8.0, "unidad_ref": "CJ*8", "stock": 72.0, "categoria": "YOGURTS: GRIEGO", "almacen": "Central"}, {"codigo": "769", "producto": "YOG.LAIVE GRIEGO ORIGINAL S-E POTE 800G", "unidad_base": "PTO", "factor_ref": 8.0, "unidad_ref": "CJ*8", "stock": 147.0, "categoria": "YOGURTS: GRIEGO", "almacen": "Central"}, {"codigo": "771", "producto": "YOG. LAIVE GRIEGO ARANDANOS POTE 500 G", "unidad_base": "PTO", "factor_ref": 8.0, "unidad_ref": "CJ*8", "stock": 143.0, "categoria": "YOGURTS: GRIEGO", "almacen": "Central"}, {"codigo": "772", "producto": "YOG. LAIVE GRIEGO FRUTOS ROJOS 500 G", "unidad_base": "PTO", "factor_ref": 8.0, "unidad_ref": "CJ*8", "stock": 218.0, "categoria": "YOGURTS: GRIEGO", "almacen": "Central"}, {"codigo": "779", "producto": "YOGURT LAIVE GRIEGO BLUEBERRY VASO 120g", "unidad_base": "VAS", "factor_ref": 24.0, "unidad_ref": "CJ*24", "stock": 11.0, "categoria": "YOGURTS: GRIEGO", "almacen": "Central"}, {"codigo": "780", "producto": "YOGURT LAIVE GRIEGO DURAZNO VASO 120g", "unidad_base": "VAS", "factor_ref": 24.0, "unidad_ref": "CJ*24", "stock": 314.0, "categoria": "YOGURTS: GRIEGO", "almacen": "Central"}, {"codigo": "781", "producto": "YOGURT LAIVE GRIEGO FRESA CERO GRASA VASO", "unidad_base": "VAS", "factor_ref": 24.0, "unidad_ref": "CJ*24", "stock": 539.0, "categoria": "YOGURTS: GRIEGO", "almacen": "Central"}, {"codigo": "782", "producto": "YOG. LAIVE MORA BOT. 180 G", "unidad_base": "BOT", "factor_ref": 24.0, "unidad_ref": "CJ*24", "stock": 58.0, "categoria": "YOGURTS: ENTERO (A)", "almacen": "Central"}, {"codigo": "789", "producto": "BEBIDA YOPI CHOCOLATE 170ML", "unidad_base": "UND", "factor_ref": 24.0, "unidad_ref": "CJ*24", "stock": 1.0, "categoria": "LECHES FRESCAS: SABORIZADAS", "almacen": "Central"}, {"codigo": "791", "producto": "YOGURT MIX LAIVE FRESA/CHOCOLATETE CRUJ-COPA", "unidad_base": "VAS", "factor_ref": 20.0, "unidad_ref": "CJ*20", "stock": 385.0, "categoria": "YOGURTS: INFANTIL / JUVENIL", "almacen": "Central"}, {"codigo": "792", "producto": "YOGURT MIX LAIVE VAINILLA/BOLITAS DE COLORES-COPA", "unidad_base": "VAS", "factor_ref": 20.0, "unidad_ref": "CJ*20", "stock": 295.0, "categoria": "YOGURTS: INFANTIL / JUVENIL", "almacen": "Central"}, {"codigo": "793", "producto": "YOGURT MIX LAIVE VAINILLA/CHOCOLATE CRUJ-COPA", "unidad_base": "VAS", "factor_ref": 20.0, "unidad_ref": "CJ*20", "stock": 431.0, "categoria": "YOGURTS: INFANTIL / JUVENIL", "almacen": "Central"}, {"codigo": "797", "producto": "YOGURT MIX LAIVE VAINILLA/HOJUELAS COPA", "unidad_base": "VAS", "factor_ref": 20.0, "unidad_ref": "CJ*20", "stock": 68.0, "categoria": "YOGURTS: INFANTIL / JUVENIL", "almacen": "Central"}, {"codigo": "813", "producto": "YOGURT LAIVE YOPI FRESA VASO", "unidad_base": "VAS", "factor_ref": 24.0, "unidad_ref": "CJ*24", "stock": 666.0, "categoria": "YOGURTS: INFANTIL / JUVENIL", "almacen": "Central"}, {"codigo": "858", "producto": "YOPI MIX VAINILLA C/B. SAB. CHOCO 100G", "unidad_base": "VAS", "factor_ref": 24.0, "unidad_ref": "CJ*24", "stock": 1130.0, "categoria": "YOGURTS: INFANTIL / JUVENIL", "almacen": "Central"}, {"codigo": "859", "producto": "YOPI MIX VAINILLA C/HOJUELA VASO 100G", "unidad_base": "VAS", "factor_ref": 24.0, "unidad_ref": "CJ*24", "stock": 276.0, "categoria": "YOGURTS: INFANTIL / JUVENIL", "almacen": "Central"}, {"codigo": "861", "producto": "YOPI MIX VAINILLA C/B. COLORES 100G", "unidad_base": "VAS", "factor_ref": 24.0, "unidad_ref": "CJ*24", "stock": 841.0, "categoria": "YOGURTS: INFANTIL / JUVENIL", "almacen": "Central"}, {"codigo": "864", "producto": "YOPI MIX KBOOM 100G", "unidad_base": "VAS", "factor_ref": 24.0, "unidad_ref": "CJ*24", "stock": 759.0, "categoria": "YOGURTS: INFANTIL / JUVENIL", "almacen": "Central"}, {"codigo": "901", "producto": "Bebida de Leche La Preferida Sabor chocolate Bolsa 800ml", "unidad_base": "BOL", "factor_ref": 16.0, "unidad_ref": "CJ*16", "stock": 121.0, "categoria": "LECHES FRESCAS: BEBIDA NUTRITIVA", "almacen": "Central"}, {"codigo": "2103", "producto": "LECHE LAIVE BOLSITARRO BOLSA 390G", "unidad_base": "BOL", "factor_ref": 24.0, "unidad_ref": "CJ*24", "stock": 1666.0, "categoria": "EVAPORADAS: ENTERO (A)", "almacen": "Central"}, {"codigo": "2124", "producto": "LECHE LAIVE SIN LACT. LIGHT BOT390G 6PACK", "unidad_base": "BOT", "factor_ref": 24.0, "unidad_ref": "CJ*24", "stock": 2897.0, "categoria": "EVAPORADAS: LIGHT", "almacen": "Central"}, {"codigo": "2125", "producto": "LECHE LAIVE BOLSITARRO BOLSA 800G", "unidad_base": "BOL", "factor_ref": 16.0, "unidad_ref": "CJ*16", "stock": 9815.0, "categoria": "EVAPORADAS: ENTERO (A)", "almacen": "Central"}, {"codigo": "2134", "producto": "LECHE UHT LAIVE SIN LACTOSA CAJA946ML", "unidad_base": "CAJ", "factor_ref": 12.0, "unidad_ref": "CJ*12", "stock": 592.0, "categoria": "LECHES FRESCAS: SIN LACTOSA", "almacen": "Central"}, {"codigo": "2135", "producto": "LECHE UHT SBELT CAJA 946ML", "unidad_base": "CAJ", "factor_ref": 12.0, "unidad_ref": "CJ*12", "stock": 335.0, "categoria": "LECHES FRESCAS: LIGHT", "almacen": "Central"}, {"codigo": "2136", "producto": "LECHE UHT LAIVE ENTERA CAJA 946ML", "unidad_base": "CAJ", "factor_ref": 12.0, "unidad_ref": "CJ*12", "stock": 6778.0, "categoria": "LECHES FRESCAS: ENTERO (A)", "almacen": "Central"}, {"codigo": "2153", "producto": "M. LAC LAIVE SIN LACTOSA LIGHT CJ480G SIXPACK", "unidad_base": "UND", "factor_ref": 24.0, "unidad_ref": "CJ*24", "stock": 192.0, "categoria": "EVAPORADAS: LIGHT", "almacen": "Central"}, {"codigo": "2182", "producto": "MEZCLA LACTEA SIN LACTOSA LAIVE CAJA SIXPACK", "unidad_base": "CAJ", "factor_ref": 24.0, "unidad_ref": "CJ*24", "stock": 382.0, "categoria": "EVAPORADAS: SIN LACTOSA", "almacen": "Central"}, {"codigo": "2193", "producto": "LECHE LAIVE SL SABOR CHOCOLATE CJ 946ML", "unidad_base": "CAJ", "factor_ref": 12.0, "unidad_ref": "CJ*12", "stock": 399.0, "categoria": "LECHES FRESCAS: SABORIZADAS", "almacen": "Central"}, {"codigo": "2196", "producto": "LECHE LAIVE SAB. CHOCO. 170 ML", "unidad_base": "CAJ", "factor_ref": 24.0, "unidad_ref": "CJ*24", "stock": 1.0, "categoria": "LECHES FRESCAS: SABORIZADAS", "almacen": "Central"}, {"codigo": "2223", "producto": "MEZCLA LACTEA UHT LA PREFERIDA BOLSA 800ML", "unidad_base": "BOL", "factor_ref": 16.0, "unidad_ref": "CJ*16", "stock": 151.0, "categoria": "LECHES FRESCAS: ENTERO (A)", "almacen": "Central"}, {"codigo": "2224", "producto": "LECHE LAIVE PRACTITARRO 390G (12 PACK)", "unidad_base": "BOT", "factor_ref": 12.0, "unidad_ref": "PAQ*12", "stock": 4131.0, "categoria": "EVAPORADAS: ENTERO (A)", "almacen": "Central"}, {"codigo": "2226", "producto": "LECHE LAIVE SIN LACTOSA BOT 390G (12PACK)", "unidad_base": "BOT", "factor_ref": 12.0, "unidad_ref": "PAQ*12", "stock": 768.0, "categoria": "EVAPORADAS: SIN LACTOSA", "almacen": "Central"}, {"codigo": "2909", "producto": "BEBIDA DE ALMENDRA SIN ENDULZAR LAIVE CJ 946ML", "unidad_base": "CAJ", "factor_ref": 12.0, "unidad_ref": "CJ*12", "stock": 405.0, "categoria": "VEGETALES:VEGETALES", "almacen": "Central"}, {"codigo": "2910", "producto": "BEBIDA DE SOYA LAIVE CJ 946ML", "unidad_base": "CAJ", "factor_ref": 12.0, "unidad_ref": "CJ*12", "stock": 268.0, "categoria": "VEGETALES:VEGETALES", "almacen": "Central"}, {"codigo": "2911", "producto": "BEBIDA DE COCO LAIVE CJ 946ML", "unidad_base": "CAJ", "factor_ref": 12.0, "unidad_ref": "CJ*12", "stock": 437.0, "categoria": "VEGETALES:VEGETALES", "almacen": "Central"}, {"codigo": "2913", "producto": "BEB. DE ALMENDRA LAIVE CJ946ML", "unidad_base": "UND", "factor_ref": 12.0, "unidad_ref": "CJ*12", "stock": 448.0, "categoria": "VEGETALES:VEGETALES", "almacen": "Central"}, {"codigo": "2914", "producto": "BEB. DE COCO SIN ENDULZAR LAIVE CJ946ML", "unidad_base": "UND", "factor_ref": 12.0, "unidad_ref": "CJ*12", "stock": 880.0, "categoria": "VEGETALES:VEGETALES", "almacen": "Central"}, {"codigo": "2925", "producto": "BEB ALMENDRA END LAIVE BOLSA 800ML", "unidad_base": "BOL", "factor_ref": 14.0, "unidad_ref": "CJ*14", "stock": 2944.0, "categoria": "VEGETALES:VEGETALES", "almacen": "Central"}, {"codigo": "3501", "producto": "JAMONADA ESPECIAL SUIZA TRADICIONAL MOLDE X 2 KG", "unidad_base": "MOL", "factor_ref": 1.0, "unidad_ref": "MOL", "stock": 261.0, "categoria": "CARNICOS: JAMONADA / MORTADELA", "almacen": "Central"}, {"codigo": "3505", "producto": "HOT DOG SUIZA PAQUETE 200G(CJX62UN)", "unidad_base": "PQT", "factor_ref": 62.0, "unidad_ref": "CJ*62", "stock": 350.0, "categoria": "CARNICOS: HOT DOG", "almacen": "Central"}, {"codigo": "3507", "producto": "AHORRAPACK EDAM/JAMONADA LAIVE 135G", "unidad_base": "PQT", "factor_ref": 17.0, "unidad_ref": "CJ*17", "stock": 412.0, "categoria": "CARNICOS: JAMONADA / MORTADELA", "almacen": "Central"}, {"codigo": "3516", "producto": "CHICHARRON DE PRENSA SUIZA TAJADAS", "unidad_base": "PQT", "factor_ref": 90.0, "unidad_ref": "CJ*90", "stock": 514.0, "categoria": "CARNICOS: CHICHARRON", "almacen": "Central"}, {"codigo": "3517", "producto": "JAMONADA RENDIDORA SUIZA 85G", "unidad_base": "PQT", "factor_ref": 25.0, "unidad_ref": "CJ*25", "stock": 485.0, "categoria": "CARNICOS: JAMONADA / MORTADELA", "almacen": "Central"}, {"codigo": "3522", "producto": "HOT DOG POLLO SUIZA PQT 200G", "unidad_base": "PQT", "factor_ref": 60.0, "unidad_ref": "CJ*60", "stock": 619.0, "categoria": "CARNICOS: HOT DOG", "almacen": "Central"}, {"codigo": "3531", "producto": "SALCHICHA RENDIDORA 100G CJx56", "unidad_base": "PQT", "factor_ref": 56.0, "unidad_ref": "CJ*56", "stock": 683.0, "categoria": "CARNICOS: HOT DOG", "almacen": "Central"}, {"codigo": "3533", "producto": "HOT DOG SUIZA PAQUETE 400G (CJX14UN)", "unidad_base": "PQT", "factor_ref": 14.0, "unidad_ref": "CJ*14", "stock": 112.0, "categoria": "CARNICOS: HOT DOG", "almacen": "Central"}, {"codigo": "3580", "producto": "JAMONADA ESPECIAL SUIZA PAQUETE 100G", "unidad_base": "PQT", "factor_ref": 90.0, "unidad_ref": "CJ*90", "stock": 582.0, "categoria": "CARNICOS: JAMONADA / MORTADELA", "almacen": "Central"}, {"codigo": "3581", "producto": "JAMONADA DE POLLO SUIZA PAQUETE", "unidad_base": "PQT", "factor_ref": 90.0, "unidad_ref": "CJ*90", "stock": 464.0, "categoria": "CARNICOS: JAMONADA / MORTADELA", "almacen": "Central"}, {"codigo": "3587", "producto": "JAMONADA ESPECIAL SUIZA PQT 200G", "unidad_base": "PQT", "factor_ref": 14.0, "unidad_ref": "CJ*14", "stock": 98.0, "categoria": "CARNICOS: JAMONADA / MORTADELA", "almacen": "Central"}, {"codigo": "3594", "producto": "SALCHICHA DE POLLO REND.PQT.900G", "unidad_base": "UND", "factor_ref": 9.0, "unidad_ref": "CJ*9", "stock": 104.0, "categoria": "CARNICOS: HOT DOG", "almacen": "Central"}, {"codigo": "3612", "producto": "CHORIZO PRECOCIDO SUIZA 2 UNIDADES", "unidad_base": "PQT", "factor_ref": 90.0, "unidad_ref": "CJ*90", "stock": 512.0, "categoria": "CARNICOS: CHORIZO", "almacen": "Central"}, {"codigo": "3617", "producto": "CHOR. FINAS HIERB. SUIZA GOURMET PQT 4UN", "unidad_base": "PQT", "factor_ref": 8.0, "unidad_ref": "CJ*8", "stock": 20.0, "categoria": "CARNICOS: CHORIZO", "almacen": "Central"}, {"codigo": "3618", "producto": "CHORIZO PARRILLERO SUIZA PQT 400G", "unidad_base": "PQT", "factor_ref": 8.0, "unidad_ref": "CJ*8", "stock": 3.0, "categoria": "CARNICOS: CHORIZO", "almacen": "Central"}, {"codigo": "3623", "producto": "FRANKFURTER XL SUIZA PAQUETE 1KG", "unidad_base": "PQT", "factor_ref": 8.0, "unidad_ref": "CJ*8", "stock": 60.0, "categoria": "CARNICOS: HOT DOG", "almacen": "Central"}, {"codigo": "3626", "producto": "JAMON AMERICANO SUIZA PQT 500G", "unidad_base": "PQT", "factor_ref": 14.0, "unidad_ref": "CJ*14", "stock": 72.0, "categoria": "CARNICOS: JAMÓN", "almacen": "Central"}, {"codigo": "3627", "producto": "JAMON AMERICANO SUIZA MOLDE TRADICIONAL", "unidad_base": "MOL", "factor_ref": 1.0, "unidad_ref": "MOL", "stock": 153.0, "categoria": "CARNICOS: JAMÓN", "almacen": "Central"}, {"codigo": "3630", "producto": "TOCINO AHUMADO SUIZA PAQUETE", "unidad_base": "UND", "factor_ref": 14.0, "unidad_ref": "CJ*14", "stock": 219.0, "categoria": "CARNICOS: TOCINO", "almacen": "Central"}, {"codigo": "3641", "producto": "JAMON DE PAVITA SUIZA PQT 180 G", "unidad_base": "PQT", "factor_ref": 18.0, "unidad_ref": "CJ*18", "stock": 109.0, "categoria": "CARNICOS: JAMÓN", "almacen": "Central"}, {"codigo": "3642", "producto": "JAMON INGLES SUIZA PQT 180G", "unidad_base": "PQT", "factor_ref": 10.0, "unidad_ref": "CJ*10", "stock": 221.0, "categoria": "CARNICOS: JAMÓN", "almacen": "Central"}, {"codigo": "3720", "producto": "JAMON AMERICANO SUIZA PQT X 100 GRS", "unidad_base": "PQT", "factor_ref": 47.0, "unidad_ref": "CJ*47", "stock": 283.0, "categoria": "CARNICOS: JAMÓN", "almacen": "Central"}, {"codigo": "5014", "producto": "MORTADELA LA PREFERIDA PAQUETE", "unidad_base": "UND", "factor_ref": 90.0, "unidad_ref": "CJ*90", "stock": 8.0, "categoria": "CARNICOS: JAMONADA / MORTADELA", "almacen": "Central"}, {"codigo": "5022", "producto": "SALCHICHA DE POLLO LA PREFERIDA PAQUETE 165G", "unidad_base": "PQT", "factor_ref": 60.0, "unidad_ref": "CJ*60", "stock": 326.0, "categoria": "CARNICOS: HOT DOG", "almacen": "Central"}, {"codigo": "5023", "producto": "SALCHICHA CON POLLO LA PREF. PQT 100G", "unidad_base": "PQT", "factor_ref": 90.0, "unidad_ref": "CJ*90", "stock": 473.0, "categoria": "CARNICOS: HOT DOG", "almacen": "Central"}, {"codigo": "5034", "producto": "JAMONADA DE POLLO LA PREFERIDA PAQUETE", "unidad_base": "PQT", "factor_ref": 90.0, "unidad_ref": "CJ*90", "stock": 488.0, "categoria": "CARNICOS: JAMONADA / MORTADELA", "almacen": "Central"}, {"codigo": "7209", "producto": "BEB. WATTS DE DURAZNO CAJA 946ML", "unidad_base": "CAJ", "factor_ref": 12.0, "unidad_ref": "CJ*12", "stock": 233.0, "categoria": "BEBIDAS: BEBIDAS", "almacen": "Central"}, {"codigo": "7249", "producto": "BEB. WATTS DE MANGO CAJA 946ML", "unidad_base": "CAJ", "factor_ref": 12.0, "unidad_ref": "CJ*12", "stock": 943.0, "categoria": "BEBIDAS: BEBIDAS", "almacen": "Central"}, {"codigo": "7265", "producto": "BEB. WATTS DE PERA CAJA 946ML", "unidad_base": "CAJ", "factor_ref": 12.0, "unidad_ref": "CJ*12", "stock": 151.0, "categoria": "BEBIDAS: BEBIDAS", "almacen": "Central"}, {"codigo": "7292", "producto": "BEBIDA WATTS DURAZNO BOTELLA X 350ML", "unidad_base": "BOT", "factor_ref": 12.0, "unidad_ref": "PAQ*12", "stock": 152.0, "categoria": "BEBIDAS: BEBIDAS", "almacen": "Central"}, {"codigo": "7293", "producto": "BEBIDA WATTS NARANJA BOTELLA X 350ML", "unidad_base": "BOT", "factor_ref": 12.0, "unidad_ref": "PAQ*12", "stock": 1077.0, "categoria": "BEBIDAS: BEBIDAS", "almacen": "Central"}, {"codigo": "7304", "producto": "BEB. WATTS DE NARANJA 946ML", "unidad_base": "CAJ", "factor_ref": 12.0, "unidad_ref": "CJ*12", "stock": 159.0, "categoria": "BEBIDAS: BEBIDAS", "almacen": "Central"}, {"codigo": "8006", "producto": "MARGARINA SWIS POTE 450G", "unidad_base": "PTO", "factor_ref": 12.0, "unidad_ref": "CJ*12", "stock": 128.0, "categoria": "MARGARINAS: MARGARINAS", "almacen": "Central"}, {"codigo": "8110", "producto": "MARGARINA SWIS BARRA CHICA 90G", "unidad_base": "BAR", "factor_ref": 48.0, "unidad_ref": "CJ*48", "stock": 181.0, "categoria": "MARGARINAS: MARGARINAS", "almacen": "Central"}, {"codigo": "8111", "producto": "MARGARINA SWIS BARRA GRANDE 200G", "unidad_base": "BAR", "factor_ref": 48.0, "unidad_ref": "CJ*48", "stock": 370.0, "categoria": "MARGARINAS: MARGARINAS", "almacen": "Central"}, {"codigo": "8205", "producto": "MARGARINA LA PREFERIDA BARRA CHICA", "unidad_base": "BAR", "factor_ref": 24.0, "unidad_ref": "CJ*24", "stock": 85.0, "categoria": "MARGARINAS: MARGARINAS", "almacen": "Central"}, {"codigo": "8210", "producto": "MARGARINA LA PREFERIDA BARRA GRANDE", "unidad_base": "BAR", "factor_ref": 20.0, "unidad_ref": "CJ*20", "stock": 167.0, "categoria": "MARGARINAS: MARGARINAS", "almacen": "Central"}, {"codigo": "8230", "producto": "MARGARINA LA PREFERIDA GRANEL 10 KG", "unidad_base": "CAJ", "factor_ref": 1.0, "unidad_ref": "CAJ", "stock": 22.0, "categoria": "MARGARINAS: MARGARINAS", "almacen": "Central"}, {"codigo": "8600", "producto": "CREMA DE LECHE LAIVE 946 CC", "unidad_base": "CAJ", "factor_ref": 1.0, "unidad_ref": "CAJ", "stock": 1010.0, "categoria": "CREMAS DE LECHE: CREMA DE LECHE", "almacen": "Central"}, {"codigo": "9035", "producto": "SIROPE SABOR A MAPLE LAIVE BOT 355ML", "unidad_base": "BOT", "factor_ref": 12.0, "unidad_ref": "CJ*12", "stock": 157.0, "categoria": "MAQUILA", "almacen": "Central"}, {"codigo": "9039", "producto": "MANJAR LAIVE DOYPACK 200G", "unidad_base": "UND", "factor_ref": 30.0, "unidad_ref": "CJ*30", "stock": 263.0, "categoria": "MANJARES: MANJAR", "almacen": "Central"}, {"codigo": "734", "producto": "YOGURT GRIEGO LAIVE FRESA 0% GRASA POTE  500g", "unidad_base": "PTO", "factor_ref": 8.0, "unidad_ref": "CJ*8", "stock": 148.0, "categoria": "YOGURTS: GRIEGO", "almacen": "Central"}, {"codigo": "704", "producto": "BIO DEFENSA LAIVE KIDS TUTTI FRUTTI FOUR PACK", "unidad_base": "UND", "factor_ref": 48.0, "unidad_ref": "CJ*48", "stock": 3687.0, "categoria": "YOGURTS: GRIEGO", "almacen": "Central"}, {"codigo": "251", "producto": "Q. GOUDA LAIVE TAJADA TRAD. PQT 180G", "unidad_base": "PQT", "factor_ref": 15.0, "unidad_ref": "CJ*15", "stock": 90.0, "categoria": "QUESOS: GOUDA", "almacen": "Central"}, {"codigo": "3647", "producto": "CHORIZO PARRILLERO PRECOCIDO SUIZA PQT", "unidad_base": "PQT", "factor_ref": 1.0, "unidad_ref": "PQT", "stock": 21.0, "categoria": "CARNICOS: CHORIZO", "almacen": "Central"}, {"codigo": "9784", "producto": "PROM. YOPI MIX VAINILLA C/B. SAB. CHOCO 100G", "unidad_base": "UND", "factor_ref": 1.0, "unidad_ref": "UND", "stock": 4.0, "categoria": "YOGURTS: INFANTIL / JUVENIL", "almacen": "Central"}, {"codigo": "543", "producto": "MANTEQUILLA CON SAL POTE 350G", "unidad_base": "PTO", "factor_ref": 24.0, "unidad_ref": "CJ*24", "stock": 645.0, "categoria": "MANTEQUILLAS: CON SAL", "almacen": "Central"}, {"codigo": "591", "producto": "MANTEQUILLA CON SAL POTE 180G", "unidad_base": "PTO", "factor_ref": 24.0, "unidad_ref": "CJ*24", "stock": 271.0, "categoria": "MANTEQUILLAS: CON SAL", "almacen": "Central"}, {"codigo": "7305", "producto": "BEB. WATTS DE DURAZNO 170ML 6PACK", "unidad_base": "CAJ", "factor_ref": 24.0, "unidad_ref": "CJ*24", "stock": 655.0, "categoria": "BEBIDAS: BEBIDAS", "almacen": "Central"}, {"codigo": "9988", "producto": "PROM. MANTEQUILLA CON SAL BARRA 90G", "unidad_base": "UND", "factor_ref": 1.0, "unidad_ref": "UND", "stock": 16.0, "categoria": "MANTEQUILLAS: CON SAL", "almacen": "Central"}, {"codigo": "9989", "producto": "PROM. MANTEQUILLA CON SAL BARRA 180G", "unidad_base": "UND", "factor_ref": 1.0, "unidad_ref": "UND", "stock": 13.0, "categoria": "MANTEQUILLAS: CON SAL", "almacen": "Central"}, {"codigo": "9072", "producto": "DULCE DE LECHE BAZO VELARDE BOLSA 200G", "unidad_base": "BOL", "factor_ref": 30.0, "unidad_ref": "CJ*30", "stock": 455.0, "categoria": "MANJARES: DULCE DE LECHE", "almacen": "Central"}, {"codigo": "8990", "producto": "MANJAR ESPECIAL AREQUIPEÑO BV BALDE 19KG", "unidad_base": "BAL", "factor_ref": 1.0, "unidad_ref": "BAL", "stock": 72.0, "categoria": "MANJARES: AREQUIPEÑO", "almacen": "Central"}, {"codigo": "8991", "producto": "FUDGE ESPECIAL AREQUIPEÑO BV BALDE 19KG", "unidad_base": "BAL", "factor_ref": 1.0, "unidad_ref": "BAL", "stock": 35.0, "categoria": "MANJARES: AREQUIPEÑO - SABOR CHOCOLATE", "almacen": "Central"}, {"codigo": "8992", "producto": "MANJAR BLANQUITO BAZO VELARDE BOLSA 450G", "unidad_base": "BOL", "factor_ref": 16.0, "unidad_ref": "CJ*16", "stock": 139.0, "categoria": "MANJARES: BLANQUITO", "almacen": "Central"}, {"codigo": "9073", "producto": "DULCE DE LECHE BAZO VELARDE BOLSA 1KG", "unidad_base": "BOL", "factor_ref": 10.0, "unidad_ref": "CJ*10", "stock": 1411.0, "categoria": "MANJARES: DULCE DE LECHE", "almacen": "Central"}, {"codigo": "818", "producto": "YOG. LAIVE GRIEGO ARANDANOS BOT. 800G", "unidad_base": "BOT", "factor_ref": 6.0, "unidad_ref": "PAQ*6", "stock": 243.0, "categoria": "YOGURTS: GRIEGO", "almacen": "Central"}, {"codigo": "819", "producto": "YOG. LAIVE GRIEGO FRESA BOT 800G", "unidad_base": "BOT", "factor_ref": 6.0, "unidad_ref": "PAQ*6", "stock": 242.0, "categoria": "YOGURTS: GRIEGO", "almacen": "Central"}, {"codigo": "824", "producto": "YOG. LAIVE GRIEGO FRUTOS ROJOS BOT. 800G", "unidad_base": "BOT", "factor_ref": 6.0, "unidad_ref": "PAQ*6", "stock": 337.0, "categoria": "YOGURTS: GRIEGO", "almacen": "Central"}, {"codigo": "825", "producto": "YOG. LAIVE GRIEGO MANGO MARAC. BOT. 800G", "unidad_base": "BOT", "factor_ref": 6.0, "unidad_ref": "PAQ*6", "stock": 280.0, "categoria": "YOGURTS: GRIEGO", "almacen": "Central"}, {"codigo": "826", "producto": "YOG. LAIVE GRIEGO ORIGINAL BOT. 800G", "unidad_base": "BOT", "factor_ref": 6.0, "unidad_ref": "PAQ*6", "stock": 377.0, "categoria": "YOGURTS: GRIEGO", "almacen": "Central"}, {"codigo": "8993", "producto": "FUDGE ESPECIAL AREQUIPEÑO BV BALDE 5KG", "unidad_base": "BAL", "factor_ref": 1.0, "unidad_ref": "BAL", "stock": 77.0, "categoria": "MANJARES: ESPECIAL - SABOR CHOCOLATE", "almacen": "Central"}, {"codigo": "8994", "producto": "FUDGE ESPECIAL AREQUIPEÑO BV BOLSA 900G", "unidad_base": "BOL", "factor_ref": 10.0, "unidad_ref": "CJ*10", "stock": 171.0, "categoria": "MANJARES: AREQUIPEÑO - SABOR CHOCOLATE", "almacen": "Central"}, {"codigo": "8995", "producto": "FUDGE ESPECIAL CASERO BV BALDE 20KG", "unidad_base": "BAL", "factor_ref": 1.0, "unidad_ref": "BAL", "stock": 47.0, "categoria": "MANJARES: CASERO - SABOR CHOCOLATE", "almacen": "Central"}, {"codigo": "8997", "producto": "FUDGE ESPECIAL CASERO BV BOLSA 500G", "unidad_base": "BOL", "factor_ref": 16.0, "unidad_ref": "CJ*16", "stock": 367.0, "categoria": "MANJARES: CASERO - SABOR CHOCOLATE", "almacen": "Central"}, {"codigo": "8998", "producto": "FUDGE HELADERO BAZO VELARDE DOYPACK 200G", "unidad_base": "SHT", "factor_ref": 30.0, "unidad_ref": "CJ*30", "stock": 21.0, "categoria": "MANJARES: HELADERO - SABOR CHOCOLATE", "almacen": "Central"}, {"codigo": "8999", "producto": "FUDGE HELADERO BAZO VELARDE FRASCO 550G", "unidad_base": "SHT", "factor_ref": 12.0, "unidad_ref": "CJ*12", "stock": 317.0, "categoria": "MANJARES: HELADERO - SABOR CHOCOLATE", "almacen": "Central"}, {"codigo": "8996", "producto": "FUDGE ESPECIAL CASERO BV BOLSA 5KG", "unidad_base": "BOL", "factor_ref": 2.0, "unidad_ref": "CJ*2", "stock": 9.0, "categoria": "MANJARES: CASERO - SABOR CHOCOLATE", "almacen": "Central"}, {"codigo": "8980", "producto": "MANJAR BLANQUITO BAZO VELARDE BALDE 19KG", "unidad_base": "BAL", "factor_ref": 1.0, "unidad_ref": "BAL", "stock": 265.0, "categoria": "MANJARES: BLANQUITO", "almacen": "Central"}, {"codigo": "8981", "producto": "MANJAR BLANQUITO BAZO VELARDE BALDE 5KG", "unidad_base": "BAL", "factor_ref": 1.0, "unidad_ref": "BAL", "stock": 81.0, "categoria": "MANJARES: BLANQUITO", "almacen": "Central"}, {"codigo": "8982", "producto": "MANJAR BLANQUITO BAZO VELARDE BOLSA 900G", "unidad_base": "BOL", "factor_ref": 10.0, "unidad_ref": "CJ*10", "stock": 724.0, "categoria": "MANJARES: BLANQUITO", "almacen": "Central"}, {"codigo": "8983", "producto": "MANJAR ESPECIAL AREQUIPEÑO BV BOLSA 5KG", "unidad_base": "BOL", "factor_ref": 2.0, "unidad_ref": "CJ*2", "stock": 24.0, "categoria": "MANJARES: AREQUIPEÑO", "almacen": "Central"}, {"codigo": "8984", "producto": "MANJAR ESPECIAL AREQUIPEÑO BV BOLSA 900g", "unidad_base": "BOL", "factor_ref": 10.0, "unidad_ref": "CJ*10", "stock": 825.0, "categoria": "MANJARES: AREQUIPEÑO", "almacen": "Central"}, {"codigo": "8986", "producto": "DULCE DE LECHE BAZO VELARDE BALDE 13.6KG", "unidad_base": "BAL", "factor_ref": 1.0, "unidad_ref": "BAL", "stock": 40.0, "categoria": "MANJARES: DULCE DE LECHE", "almacen": "Central"}, {"codigo": "8987", "producto": "DULCE DE LECHE BAZO VELARDE BOLSA 5KG", "unidad_base": "BOL", "factor_ref": 2.0, "unidad_ref": "CJ*2", "stock": 11.0, "categoria": "MANJARES: DULCE DE LECHE", "almacen": "Central"}, {"codigo": "830", "producto": "YOG. LAIVE PROBIOTICO DURAZNO BOT. 930G", "unidad_base": "BOT", "factor_ref": 6.0, "unidad_ref": "PAQ*6", "stock": 287.0, "categoria": "YOGURTS: ENTERO (A)", "almacen": "Central"}, {"codigo": "834", "producto": "YOG. LAIVE PROBIOTICO FRESA BOT. 930G", "unidad_base": "BOT", "factor_ref": 6.0, "unidad_ref": "PAQ*6", "stock": 354.0, "categoria": "YOGURTS: ENTERO (A)", "almacen": "Central"}, {"codigo": "835", "producto": "YOG. LAIVE PROBIOTICO MORA BOT. 930G", "unidad_base": "BOT", "factor_ref": 6.0, "unidad_ref": "PAQ*6", "stock": 160.0, "categoria": "YOGURTS: ENTERO (A)", "almacen": "Central"}, {"codigo": "836", "producto": "YOG. LAIVE PROBIOTICO VAINILLA BOT. 930G", "unidad_base": "BOT", "factor_ref": 6.0, "unidad_ref": "PAQ*6", "stock": 206.0, "categoria": "YOGURTS: ENTERO (A)", "almacen": "Central"}, {"codigo": "837", "producto": "YOG. LAIVE GRIEGO ARANDANOS BOT. 1.5KG", "unidad_base": "BOT", "factor_ref": 4.0, "unidad_ref": "PAQ*4", "stock": 121.0, "categoria": "YOGURTS: GRIEGO", "almacen": "Central"}, {"codigo": "838", "producto": "YOG. LAIVE GRIEGO FRUTOS ROJOS BOT 1.5KG", "unidad_base": "BOT", "factor_ref": 4.0, "unidad_ref": "PAQ*4", "stock": 118.0, "categoria": "YOGURTS: GRIEGO", "almacen": "Central"}, {"codigo": "847", "producto": "YOG. PANCITA FELICES DURAZNO VASO 113G", "unidad_base": "VAS", "factor_ref": 24.0, "unidad_ref": "PAQ*24", "stock": 215.0, "categoria": "YOGURTS: INFANTIL / JUVENIL", "almacen": "Central"}, {"codigo": "849", "producto": "YOG. LAIVE PROBIOTICO LUCUMA BOT. 930G", "unidad_base": "BOT", "factor_ref": 6.0, "unidad_ref": "PAQ*6", "stock": 366.0, "categoria": "YOGURTS: ENTERO (A)", "almacen": "Central"}, {"codigo": "2238", "producto": "LECHE UHT SEM LAIVE BOLSA 800ML", "unidad_base": "BOL", "factor_ref": 12.0, "unidad_ref": "CJ*12", "stock": 1457.0, "categoria": "LECHES FRESCAS: ENTERO (A)", "almacen": "Central"}, {"codigo": "2239", "producto": "LECHE UHT LAIVE SIN LACTOSA BOLSA 800ML", "unidad_base": "BOL", "factor_ref": 12.0, "unidad_ref": "CJ*12", "stock": 3848.0, "categoria": "LECHES FRESCAS: SIN LACTOSA", "almacen": "Central"}, {"codigo": "2241", "producto": "BEB. CHOCOLATE LAIVE BOLSA 800ML", "unidad_base": "BOL", "factor_ref": 12.0, "unidad_ref": "CJ*12", "stock": 113.0, "categoria": "LECHES FRESCAS: SABORIZADAS", "almacen": "Central"}, {"codigo": "259", "producto": "PACK MIXTO SUIZA J.PIZZERO + Q.EDAM 279G", "unidad_base": "PQT", "factor_ref": 24.0, "unidad_ref": "CJ*24", "stock": 210.0, "categoria": "CARNICOS: JAMÓN", "almacen": "Central"}, {"codigo": "868", "producto": "YOG. LAIVE PROBIOTICO MANGO BOT. 930G", "unidad_base": "BOT", "factor_ref": 6.0, "unidad_ref": "PAQ*6", "stock": 85.0, "categoria": "YOGURTS: ENTERO (A)", "almacen": "Central"}, {"codigo": "869", "producto": "YOG. LAIVE PROBIOTICO NATURAL BOT. 930G", "unidad_base": "BOT", "factor_ref": 6.0, "unidad_ref": "PAQ*6", "stock": 171.0, "categoria": "YOGURTS: ENTERO (A)", "almacen": "Central"}, {"codigo": "9065", "producto": "YOGURT DEFENSAS DE ACERO FRESA VASO 113G", "unidad_base": "VAS", "factor_ref": 24.0, "unidad_ref": "PAQ*24", "stock": 160.0, "categoria": "YOGURTS: INFANTIL / JUVENIL", "almacen": "Central"}, {"codigo": "8527", "producto": "PROM.  MANJAR BLANQUITO BAZO VELARDE 900", "unidad_base": "UND", "factor_ref": 1.0, "unidad_ref": "UND", "stock": 20.0, "categoria": "MANJARES: BLANQUITO", "almacen": "Central"}, {"codigo": "8528", "producto": "PROM.  MANTEQUILA CON SAL POTE 180", "unidad_base": "UND", "factor_ref": 1.0, "unidad_ref": "UND", "stock": 3.0, "categoria": "MANTEQUILLAS: CON SAL", "almacen": "Central"}, {"codigo": "8590", "producto": "PROM.YOG. LAIVE MORA BOT. 180 G", "unidad_base": "UND", "factor_ref": 1.0, "unidad_ref": "UND", "stock": 90.0, "categoria": "YOGURTS: ENTERO (A)", "almacen": "Central"}, {"codigo": "8621", "producto": "PROM. CHICHARRON DE PRENSA SUIZA PAQ 85G", "unidad_base": "UND", "factor_ref": 1.0, "unidad_ref": "UND", "stock": 24.0, "categoria": "CARNICOS: CHICHARRON", "almacen": "Central"}, {"codigo": "8622", "producto": "PROM. HOT DOG POLLO SUIZA PQT 200G", "unidad_base": "UND", "factor_ref": 1.0, "unidad_ref": "UND", "stock": 19.0, "categoria": "CARNICOS: JAMONADA / MORTADELA", "almacen": "Central"}, {"codigo": "8623", "producto": "PROM. QUESO EDAM LAIVE X KG", "unidad_base": "UND", "factor_ref": 1.0, "unidad_ref": "UND", "stock": 1.0, "categoria": "QUESOS: CHARACATO", "almacen": "Central"}, {"codigo": "8624", "producto": "PROM. QUESO EDAM LAIVE TAJADAS FINAS PQT 90G", "unidad_base": "UND", "factor_ref": 1.0, "unidad_ref": "UND", "stock": 5.0, "categoria": "QUESOS: EDAM", "almacen": "Central"}, {"codigo": "8625", "producto": "PROM. QUESO CREMA BARRA 227G", "unidad_base": "UND", "factor_ref": 1.0, "unidad_ref": "UND", "stock": 1.0, "categoria": "QUESOS: CREAM CHEESE", "almacen": "Central"}, {"codigo": "8639", "producto": "PROM. HOT DOG SUIZA PAQUETE 200G (CJ X 62 UN)", "unidad_base": "UND", "factor_ref": 1.0, "unidad_ref": "UND", "stock": 9.0, "categoria": "CARNICOS: HOT DOG", "almacen": "Central"}, {"codigo": "8661", "producto": "PROM. JAMONADA CON POLLO SUIZA PAQUETE 100G", "unidad_base": "UND", "factor_ref": 1.0, "unidad_ref": "UND", "stock": 29.0, "categoria": "CARNICOS: JAMONADA / MORTADELA", "almacen": "Central"}, {"codigo": "8662", "producto": "PROM. SALCHICHA CON POLLO LA PREF. PQT 100G", "unidad_base": "UND", "factor_ref": 1.0, "unidad_ref": "UND", "stock": 16.0, "categoria": "CARNICOS: HOT DOG", "almacen": "Central"}, {"codigo": "8683", "producto": "PROM. PACK LAIVE QUESO EDAM+JAMON PIZZERO 300G", "unidad_base": "UND", "factor_ref": 1.0, "unidad_ref": "UND", "stock": 6.0, "categoria": "CARNICOS: JAMÓN", "almacen": "Central"}, {"codigo": "8684", "producto": "PROM. PACK MIXTO SUIZA J.PIZZERO + Q.EDAM 279G", "unidad_base": "UND", "factor_ref": 1.0, "unidad_ref": "UND", "stock": 5.0, "categoria": "CARNICOS: JAMÓN", "almacen": "Central"}, {"codigo": "8702", "producto": "PROM. DULCE DE LECHE BAZO VELARDE BOLSA 1KG", "unidad_base": "UND", "factor_ref": 1.0, "unidad_ref": "UND", "stock": 2.0, "categoria": "MANJARES: DULCE DE LECHE", "almacen": "Central"}, {"codigo": "8699", "producto": "PROM. DULCE DE LECHE BAZO VELARDE BOLSA 200G", "unidad_base": "UND", "factor_ref": 1.0, "unidad_ref": "UND", "stock": 15.0, "categoria": "MANJARES: DULCE DE LECHE", "almacen": "Central"}, {"codigo": "8710", "producto": "PROM. BEB COCO LAIVE CJ 946ML", "unidad_base": "UND", "factor_ref": 1.0, "unidad_ref": "UND", "stock": 6.0, "categoria": "VEGETALES: COCO", "almacen": "Central"}];;
+const SUPABASE_URL = "https://tcjluuobrtdbvxmwbigi.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_ygFCH0vUZANIYwOcViGTGQ_evVzStQf";
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+let cloudUser = null;
+
+function setCloudStatus(msg, ok=false){
+  const el=document.getElementById('cloudBar');
+  if(el){el.textContent=(ok?'☁️ ':'⚠️ ')+msg; el.style.background=ok?'#dff5e8':'#fff0d1'; el.style.color=ok?'#146c3a':'#8a5700';}
+}
+function loginMessage(msg, ok=false){
+  const el=document.getElementById('loginMsg'); if(!el)return;
+  el.style.display='block'; el.className='alert '+(ok?'ok':'soon'); el.textContent=msg;
+}
+
+const PRODUCTION_APP_URL = "https://apazayeferson422-wq.github.io/IEM-GROUP/";
+
+function showRecovery(){
+  document.getElementById('loginBox').style.display='none';
+  document.getElementById('recoveryBox').style.display='block';
+  document.getElementById('recoveryEmail').value=document.getElementById('loginEmail').value.trim();
+}
+function backToLogin(){
+  document.getElementById('recoveryBox').style.display='none';
+  document.getElementById('loginBox').style.display='block';
+}
+function recoveryMessage(msg,ok=false){
+  const el=document.getElementById('recoveryMsg'); if(!el)return;
+  el.style.display='block'; el.className='alert '+(ok?'ok':'soon'); el.textContent=msg;
+}
+async function sendRecovery(){
+  const email=document.getElementById('recoveryEmail').value.trim();
+  if(!email){recoveryMessage('Ingresa tu correo.');return;}
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:PRODUCTION_APP_URL});
+  if(error){recoveryMessage(error.message);return;}
+  recoveryMessage('Enlace enviado. Abre el correo y pulsa el enlace para volver a la aplicación publicada.',true);
+}
+async function updatePassword(){
+  const p1=document.getElementById('newPassword').value;
+  const p2=document.getElementById('newPassword2').value;
+  const el=document.getElementById('passwordMsg');
+  if(p1.length<6){el.style.display='block';el.className='alert soon';el.textContent='La contraseña debe tener al menos 6 caracteres.';return;}
+  if(p1!==p2){el.style.display='block';el.className='alert soon';el.textContent='Las contraseñas no coinciden.';return;}
+  const {error}=await sb.auth.updateUser({password:p1});
+  if(error){el.style.display='block';el.className='alert soon';el.textContent=error.message;return;}
+  el.style.display='block';el.className='alert ok';el.textContent='Contraseña actualizada. Iniciando sesión...';
+  setTimeout(()=>enterCloudApp(),800);
+}
+async function loginCloud(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const password=document.getElementById('loginPassword').value;
+  if(!email||!password){loginMessage('Ingresa correo y contraseña.');return;}
+  const {data,error}=await sb.auth.signInWithPassword({email,password});
+  if(error){loginMessage(error.message);return;}
+  cloudUser=data.user; await enterCloudApp();
+}
+async function signupCloud(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const password=document.getElementById('loginPassword').value;
+  if(!email||password.length<6){loginMessage('Ingresa un correo y una contraseña de al menos 6 caracteres.');return;}
+  const {data,error}=await sb.auth.signUp({email,password});
+  if(error){loginMessage(error.message);return;}
+  if(data.session){cloudUser=data.user; await enterCloudApp();}
+  else loginMessage('Usuario creado. Revisa tu correo para confirmar la cuenta.', true);
+}
+async function logoutCloud(){await sb.auth.signOut();location.reload();}
+async function enterCloudApp(){
+  document.getElementById('loginBox').style.display='none';
+  document.getElementById('appShell').style.display='block';
+  setCloudStatus('Sincronizando...',false);
+  await loadCloudRecords();
+}
+async function loadCloudRecords(){
+  try{
+    const {data,error}=await sb.from('inventarios').select('id,producto_id,cajas,unidades_sueltas,total_fisico,diferencia,registrado_en,actualizado_en,productos(codigo)').order('id');
+    if(error) throw error;
+    const invByCode={};
+    (data||[]).forEach(r=>{
+      const code=String(r.productos?.codigo||'');
+      if(code) invByCode[code]={codigo:code,boxes:Number(r.cajas)||0,loose:Number(r.unidades_sueltas)||0,total:Number(r.total_fisico)||0,stock:Number(findByCode(code)?.stock)||0,difference:Number(r.diferencia)||0,fv:[],savedAt:r.actualizado_en||r.registrado_en,cloudId:r.id};
+    });
+    if(data?.length){
+      const ids=data.map(r=>r.id);
+      const {data:fvs,error:fe}=await sb.from('vencimientos').select('inventario_id,fecha_vencimiento,cantidad,lote').in('inventario_id',ids);
+      if(fe) throw fe;
+      (fvs||[]).forEach(x=>{
+        const rec=Object.values(invByCode).find(r=>String(r.cloudId)===String(x.inventario_id));
+        if(rec) rec.fv.push({fv:x.fecha_vencimiento||'',qty:Number(x.cantidad)||0,lote:x.lote||''});
+      });
+    }
+    records=invByCode;
+    localStorage.setItem('inventario206_v10',JSON.stringify(records));
+    renderList();renderProgress();
+    setCloudStatus('Sincronizado',true);
+  }catch(e){
+    console.error(e); setCloudStatus('Error de nube',false);
+    alert('No se pudo cargar el inventario desde Supabase. Revisa las políticas RLS y la estructura indicada.');
+  }
+}
+async function saveRecordCloud(rec){
+  const p=findByCode(rec.codigo);
+  if(!p||!cloudUser) throw new Error('Sesión no disponible');
+  const {data:prod,error:pe}=await sb.from('productos').select('id').eq('codigo',String(rec.codigo)).single();
+  if(pe) throw pe;
+  const payload={producto_id:prod.id,usuario_id:cloudUser.id,cajas:rec.boxes,unidades_sueltas:rec.loose,total_fisico:rec.total,diferencia:rec.difference,actualizado_en:new Date().toISOString()};
+  let invId=rec.cloudId;
+  if(invId){
+    const {error}=await sb.from('inventarios').update(payload).eq('id',invId); if(error) throw error;
+  }else{
+    const {data,error}=await sb.from('inventarios').upsert(payload,{onConflict:'usuario_id,producto_id'}).select('id').single();
+    if(error) throw error; invId=data.id; rec.cloudId=invId;
+  }
+  await sb.from('vencimientos').delete().eq('inventario_id',invId);
+  if(rec.fv?.length){
+    const rows=rec.fv.filter(x=>x.fv||x.qty||x.lote).map(x=>({inventario_id:invId,fecha_vencimiento:x.fv||null,cantidad:Number(x.qty)||0,lote:x.lote||''}));
+    if(rows.length){const {error}=await sb.from('vencimientos').insert(rows);if(error)throw error;}
+  }
+  localStorage.setItem('inventario206_v10',JSON.stringify(records));
+  setCloudStatus('Guardado en nube',true);
+}
+async function deleteRecordCloud(code){
+  const rec=records[code]; if(!rec?.cloudId)return;
+  const {error}=await sb.from('inventarios').delete().eq('id',rec.cloudId); if(error)throw error;
+}
+
+let records=JSON.parse(localStorage.getItem('inventario206_v10')||localStorage.getItem('inventario206_v9')||'{}');
+let current=null, editMode=false, scanStream=null, detector=null, scanTimer=null;
+
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+function fmt(n){return Number(n||0).toLocaleString('es-PE',{maximumFractionDigits:2});}
+function findByCode(c){c=String(c).trim().toLowerCase();return MAESTRO.find(p=>String(p.codigo).toLowerCase()===c);}
+
+function searchProducts(){
+ const q=document.getElementById('search').value.trim().toLowerCase(),box=document.getElementById('suggestions');
+ if(!q){box.innerHTML='';return;}
+ const hits=MAESTRO.filter(p=>String(p.codigo).toLowerCase().includes(q)||p.producto.toLowerCase().includes(q)).slice(0,15);
+ box.innerHTML=hits.map(p=>`<div class="sug" onclick="selectProduct('${esc(p.codigo).replace(/'/g,"\\'")}')"><b>${esc(p.producto)}</b><br><span class="muted">${esc(p.codigo)} · stock ${fmt(p.stock)}</span></div>`).join('');
+}
+function selectProduct(code){
+ current=findByCode(code);if(!current)return;editMode=false;
+ document.getElementById('suggestions').innerHTML='';document.getElementById('search').value=current.producto;
+ loadEditor(current,false);
+}
+function findBarcode(){
+ const c=document.getElementById('barcode').value.trim(),p=findByCode(c);
+ if(p){selectProduct(p.codigo);document.getElementById('barcode').value='';}
+ else if(c) alert('No se encontró ese código en los 206 productos.');
+}
+function loadEditor(p,editing){
+ editMode=editing;
+ document.getElementById('editor').style.display='block';
+ document.getElementById('pname').textContent=p.producto;
+ document.getElementById('pmeta').textContent=`Código ${p.codigo} · ${p.unidad_ref} · stock sistema ${fmt(p.stock)}`;
+ document.getElementById('editMode').style.display=editing?'block':'none';
+ const r=records[p.codigo];
+ document.getElementById('boxes').value=editing?(r?.boxes||0):0;
+ document.getElementById('loose').value=editing?(r?.loose||0):0;
+ const fvs=(r?.fv||[]).filter(x=>x.fv);
+ // En el flujo normal cada ingreso tiene UNA cantidad y UNA fecha.
+ // Si se agrega nuevamente el mismo producto, se crea otra línea de FV con su propia cantidad.
+ document.getElementById('fvSingle').value=(!editing?'':(fvs.length?fvs[fvs.length-1].fv:''));
+ calc();showExpiryAlerts();
+ document.getElementById('editor').scrollIntoView({behavior:'smooth',block:'start'});
+ setTimeout(()=>document.getElementById('boxes').focus(),100);
+}
+function getSingleFV(){
+ const fv=document.getElementById('fvSingle').value||'';
+ return fv;
+}
+function calc(){
+ if(!current)return;
+ const b=Number(document.getElementById('boxes').value)||0,l=Number(document.getElementById('loose').value)||0;
+ const add=b*(Number(current.factor_ref)||1)+l, old=records[current.codigo],total=editMode?add:(Number(old?.total)||0)+add;
+ document.getElementById('total').value=fmt(total);
+}
+function normalizeFV(arr){
+  return (Array.isArray(arr)?arr:[]).filter(x=>x && (x.fv||x.qty||x.lote)).map(x=>({
+    fv:x.fv||'', qty:Number(x.qty)||0, lote:x.lote||''
+  }));
+}
+
+async function saveRecord(next=true){
+ if(!current)return;
+ const b=Number(document.getElementById('boxes').value)||0;
+ const l=Number(document.getElementById('loose').value)||0;
+ const add=b*(Number(current.factor_ref)||1)+l;
+ if(add<=0){alert('Ingresa una cantidad en cajas o sueltas.');return;}
+ const date=getSingleFV();
+ if(!date){
+   if(!confirm('No se ingresó fecha de vencimiento. ¿Guardar igualmente sin FV?')) return;
+ }
+ const old=records[current.codigo]||{codigo:current.codigo,boxes:0,loose:0,total:0,stock:Number(current.stock)||0,fv:[]};
+ const total=editMode?add:(Number(old.total)||0)+add;
+ let fv;
+ if(editMode){
+   // En edición se reemplaza el total y se mantiene la trazabilidad de FV.
+   fv=normalizeFV(old.fv);
+   if(date){
+     const idx=fv.findIndex(x=>x.fv===date);
+     if(idx>=0) fv[idx].qty=add;
+     else fv.push({fv:date,qty:add,lote:''});
+   }
+ }else{
+   // Cada ingreso genera su propia línea FECHA + CANTIDAD.
+   // No se mezclan ingresos distintos aunque tengan la misma fecha.
+   fv=normalizeFV(old.fv);
+   if(date) fv.push({fv:date,qty:add,lote:''});
+ }
+ const rec={
+   codigo:current.codigo,
+   boxes:editMode?b:(Number(old.boxes)||0)+b,
+   loose:editMode?l:(Number(old.loose)||0)+l,
+   total,
+   stock:Number(current.stock)||0,
+   difference:total-(Number(current.stock)||0),
+   fv,
+   savedAt:new Date().toISOString(),
+   cloudId:old.cloudId
+ };
+ try{
+   await saveRecordCloud(rec);
+   records[current.codigo]=rec;
+   renderList();renderProgress();
+   flash(editMode?'Registro actualizado y sincronizado.':'Ingreso guardado y acumulado.');
+   editMode=false;
+   if(next){
+     closeEditor();
+     document.getElementById('search').focus();
+   }else{
+     loadEditor(current,false);
+   }
+ }catch(e){
+   console.error(e);
+   alert('No se pudo guardar en la nube: '+(e?.message||e));
+ }
+}
+
+function newAddition(){if(!current)return;editMode=false;loadEditor(current,false);}
+function editRecord(code){current=findByCode(code);if(current){document.getElementById('search').value=current.producto;loadEditor(current,true);}}
+async function deleteRecord(code){
+ const p=findByCode(code);if(!p)return;
+ if(confirm(`¿Borrar el registro de ${p.producto}?`)){
+   try{
+     await deleteRecordCloud(code);
+     delete records[code];localStorage.setItem('inventario206_v10',JSON.stringify(records));
+     renderList();renderProgress();if(current?.codigo===code)closeEditor();
+     setCloudStatus('Borrado en nube',true);
+   }catch(e){console.error(e);alert('No se pudo borrar en la nube.');}
+ }
+}
+function focusSearch(){
+  closeEditor();
+  const el=document.getElementById('search');
+  el.focus();
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function closeEditor(){current=null;editMode=false;document.getElementById('editor').style.display='none';document.getElementById('search').value='';document.getElementById('suggestions').innerHTML='';document.getElementById('search').focus();}
+function flash(msg){const box=document.getElementById('alertbox');box.innerHTML=`<div class="alert ok">✓ ${msg}</div>`;setTimeout(()=>box.innerHTML='',1800);}
+function isCold(p){const t=(p.categoria+' '+p.producto+' '+p.unidad_base).toLowerCase();return /fr[ií]o|refriger|l[aá]cteo|yogur|yogurt|leche|queso|mantequilla|tocino|embutido/.test(t);}
+function alertDays(p){return isCold(p)?15:30;}
+function showExpiryAlerts(){
+ const box=document.getElementById('alertbox');
+ if(!current)return;
+ const v=document.getElementById('fvSingle').value;
+ if(!v){box.innerHTML='';return;}
+ const now=new Date();now.setHours(0,0,0,0);
+ const days=Math.ceil((new Date(v+'T00:00:00')-now)/86400000),lim=alertDays(current);
+ if(days<0)box.innerHTML=`<div class="alert expired">🔴 Vencido: ${v}</div>`;
+ else if(days<=lim)box.innerHTML=`<div class="alert soon">🟠 Vence en ${days} días: ${v}</div>`;
+ else box.innerHTML='';
+}
+function renderProgress(){
+ const n=Object.keys(records).length,pct=Math.round(n/MAESTRO.length*100);
+ document.getElementById('advancePct').textContent=pct+'%';document.getElementById('progressBar').style.width=pct+'%';document.getElementById('advanceText').textContent=`${n} de ${MAESTRO.length} productos registrados`;
+}
+function renderList(){
+ const vals=Object.values(records).sort((a,b)=>String(a.codigo).localeCompare(String(b.codigo)));
+ document.getElementById('count').textContent=vals.length;
+ if(!vals.length){document.getElementById('recordsList').innerHTML='<div class="empty">Todavía no hay productos registrados.</div>';return;}
+ document.getElementById('recordsList').innerHTML=vals.map(r=>{
+  const p=findByCode(r.codigo);if(!p)return '';const d=Number(r.difference)||0;
+  const badge=d>0?'<span class="badge pos">Sobrante</span>':d<0?'<span class="badge neg">Faltante</span>':'<span class="badge zero">Exacto</span>';
+  const fvs=(r.fv||[]).filter(x=>x.fv||x.qty);
+  const fvHtml=fvs.length
+    ? `<div class="fvSummary"><div class="fvTitle">📅 Ingresos registrados por vencimiento</div>${fvs.map((x,i)=>`<div class="fvItem"><span><b>Ingreso ${i+1}</b> · ${esc(x.fv||'Sin fecha')}</span><span><b>Cantidad:</b> ${fmt(x.qty||0)}</span></div>`).join('')}</div>`
+    : `<div class="fvSummary"><div class="fvTitle">📅 Ingresos registrados por vencimiento</div><div class="fvItem">Sin fecha de vencimiento registrada</div></div>`;
+  return `<div class="record"><div class="recordTop"><span>${esc(p.producto)}</span>${badge}</div>
+  <div class="recordMeta">${esc(r.codigo)} · Total físico ${fmt(r.total)} · Stock sistema ${fmt(r.stock)} · Diferencia ${fmt(d)}</div>
+  ${fvHtml}
+  <div class="recordActions"><button class="secondary" onclick="editRecord('${esc(r.codigo).replace(/'/g,"\\'")}')">✏️ Editar</button><button class="danger" onclick="deleteRecord('${esc(r.codigo).replace(/'/g,"\\'")}')">🗑️ Borrar</button><button class="secondary" onclick="selectProduct('${esc(r.codigo).replace(/'/g,"\\'")}')">＋ Sumar</button></div></div>`;
+ }).join('');
+}
+async function startScanner(){
+ if(!('BarcodeDetector' in window)){alert('Tu navegador no permite escaneo de códigos con cámara desde esta página. Usa el campo "Código de barras / código".');focusBarcode();return;}
+ try{
+  detector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','code_39','itf']});
+  scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}});
+  const video=document.getElementById('video');video.srcObject=scanStream;await video.play();document.getElementById('scanner').style.display='block';scanLoop();
+ }catch(e){alert('No se pudo abrir la cámara. Puedes ingresar el código manualmente.');focusBarcode();}
+}
+async function scanLoop(){
+ if(!detector)return;const video=document.getElementById('video');
+ try{const codes=await detector.detect(video);if(codes.length&&codes[0].rawValue){document.getElementById('barcode').value=codes[0].rawValue;stopScanner();findBarcode();return;}}catch(e){}
+ scanTimer=requestAnimationFrame(scanLoop);
+}
+function stopScanner(){if(scanTimer)cancelAnimationFrame(scanTimer);scanTimer=null;if(scanStream)scanStream.getTracks().forEach(t=>t.stop());scanStream=null;document.getElementById('scanner').style.display='none';}
+function focusBarcode(){stopScanner();document.getElementById('barcode').focus();}
+function backup(){const blob=new Blob([JSON.stringify({version:18,fecha:new Date().toISOString(),records},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='RESPALDO_INVENTARIO_206_V18.json';a.click();}
+function restore(){const i=document.createElement('input');i.type='file';i.accept='.json';i.onchange=()=>{const f=i.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const x=JSON.parse(rd.result);records=x.records||x;localStorage.setItem('inventario206_v10',JSON.stringify(records));renderList();renderProgress();alert('Respaldo restaurado.')}catch(e){alert('Archivo no válido.')}};rd.readAsText(f)};i.click();}
+function displayDate(v){
+  const s=String(v||'');
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)){
+    const [y,m,d]=s.split('-');
+    return `${d}/${m}/${y}`;
+  }
+  return s;
+}
+function exportCSV(){
+ const vals=Object.values(records).sort((a,b)=>String(a.codigo).localeCompare(String(b.codigo),undefined,{numeric:true,sensitivity:'base'}));
+ const maxFV=Math.max(3,...vals.map(r=>(r.fv||[]).length));
+ const headers=['CODIGO','DESCRIPCION','UND-MED','RTU','SISTEMA','DIFERENCIA','CONTEO FISICO'];
+ for(let i=1;i<=maxFV;i++){headers.push('STOCK'+i,'FV'+i);}
+ const rows=[headers];
+ vals.forEach(r=>{
+   const p=findByCode(r.codigo)||{};
+   const row=[r.codigo,p.producto||'',p.unidad_base||'',p.factor_referencia??'',r.stock??'',r.difference??'',r.total??''];
+   const f=(r.fv||[]).filter(x=>x && (x.fv||x.qty||x.lote));
+   for(let i=0;i<maxFV;i++){const x=f[i]||{};row.push(x.qty??'',displayDate(x.fv));}
+   rows.push(row);
+ });
+ const csv='\ufeff'+rows.map(row=>row.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(';')).join('\n');
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='INVENTARIO_CONSOLIDADO_206_V18_ORDENADO.csv';a.click();
+}
+document.addEventListener('click',e=>{if(!e.target.closest('.searchWrap'))document.getElementById('suggestions').innerHTML='';});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&current&&(e.target.id==='boxes'||e.target.id==='loose')){e.preventDefault();saveRecord();}});
+sb.auth.onAuthStateChange(async (event, session)=>{
+  if(event === 'PASSWORD_RECOVERY'){
+    document.getElementById('loginBox').style.display='none';
+    document.getElementById('recoveryBox').style.display='none';
+    document.getElementById('newPasswordBox').style.display='block';
+    document.getElementById('appShell').style.display='none';
+  } else if(event === 'SIGNED_IN' && session && document.getElementById('loginBox').style.display !== 'none'){
+    cloudUser=session.user; await enterCloudApp();
+  }
+});
+sb.auth.getSession().then(async ({data})=>{
+  if(data.session){cloudUser=data.session.user; await enterCloudApp();}
+  else {document.getElementById('loginBox').style.display='block';document.getElementById('recoveryBox').style.display='none';document.getElementById('newPasswordBox').style.display='none';document.getElementById('appShell').style.display='none';}
+});
+
+</script>
+</body></html>
