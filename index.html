@@ -303,7 +303,9 @@ function selectProduct(code){
  loadEditor(current,false);
 }
 function findBarcode(){
- const c=document.getElementById('barcode').value.trim(),p=findByCode(c);
+ const c=document.getElementById('barcode').value.trim();
+ const normCode=v=>String(v??'').trim().replace(/\s+/g,'').replace(/^0+(?=\d)/,'').toLowerCase();
+ const p=findByCode(c)||MAESTRO.find(x=>normCode(x.codigo)===normCode(c));
  if(p){
    const camera=(document.getElementById('cameraFilter')?.value||'TODOS').toUpperCase();
    if(camera!=='TODOS'&&String(p.camara||'').toUpperCase()!==camera){alert('El código existe, pero pertenece a '+(p.camara||'otra cámara')+'. Cambia el filtro de cámara.');return;}
@@ -458,7 +460,7 @@ function renderList(){
 async function startScanner(){
  if(!('BarcodeDetector' in window)){alert('Tu navegador no permite escaneo de códigos con cámara desde esta página. Usa el campo "Código de barras / código".');focusBarcode();return;}
  try{
-  detector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','code_39','itf']});
+  detector=new BarcodeDetector({formats:['qr_code','ean_13','ean_8','upc_a','upc_e','code_128','code_39','itf']});
   scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}});
   const video=document.getElementById('video');video.srcObject=scanStream;await video.play();document.getElementById('scanner').style.display='block';scanLoop();
  }catch(e){alert('No se pudo abrir la cámara. Puedes ingresar el código manualmente.');focusBarcode();}
